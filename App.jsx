@@ -1,4 +1,4 @@
-import React from "./vite-runner/core/React.js";
+import React from "./class2-vite-runner/core/React.js";
 // const App = React.createElement("div", { id: "app" }, "hi", "mini-react");
 function AppOne() {
   return <div>App.jsx</div>;
