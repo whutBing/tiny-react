@@ -22,70 +22,77 @@ function createElement(type, props, ...children) {
 }
 
 function render(el, container) {
-  debugger;
+  // 只会走一次，后变的递归在其他处
   nextWorkUnit = {
     dom: container,
     props: {
       children: [el]
     }
   }
-  
-  //
-  // const children = el.props.children;
-  // children.forEach((child) => {
-  //   render(child, dom);
-  // });
-  // container.append(dom);
+  root = nextWorkUnit;
 }
 
 
-
 let nextWorkUnit = null;
+let root = null
 
-function performWorkOfUnit(work) {
-  debugger;
-  if (!work.dom) {
-    // 1. 创建 dom
-    const dom = (work.dom =
-      work.type === "TEXT_ELEMENT"
-        ? document.createTextNode("")
-        : document.createElement(work.type));
-    work.parent.dom.append(dom)
-    // 2. 处理 props
-    Object.keys(work.props).forEach((key) => {
-      if (key !== "children") {
-        dom[key] = work.props[key];
-      }
-    });
-  }
+function createDom(type) {
+  return type === "TEXT_ELEMENT"
+    ? document.createTextNode("")
+    : document.createElement(type)
+}
+
+/**
+ * 处理 props
+ * @param dom
+ * @param props
+ */
+function updateProps(dom, props) {
+  Object.keys(props).forEach((key) => {
+    if (key !== "children") {
+      dom[key] = props[key];
+    }
+  });
+}
+
+function initChildren(fiber) {
   // 3. 转换链表 设置好指针
-  const children = work.props.children;
+  const children = fiber.props.children;
   let prevChild = null;
   children.forEach((child, index) => {
-    const newWork = {
+    const newFiber = {
       type: child.type,
       props: child.props,
       child: null,
-      parent: work,
+      parent: fiber,
       sibling: null,
       dom: null
     }
-    debugger
     if (index === 0) {
-      work.child = newWork;
+      fiber.child = newFiber;
     } else {
-      prevChild.sibling = newWork;
+      prevChild.sibling = newFiber;
     }
-    prevChild = newWork;
+    prevChild = newFiber;
   })
+}
+
+function performWorkOfUnit(fiber) {
+  if (!fiber.dom) {
+    // 1. 创建 dom
+    const dom = (fiber.dom = createDom(fiber.type))
+    fiber.parent.dom.append(dom)
+    updateProps(dom, fiber.props)
+  }
+  initChildren(fiber)
   // 4. 返回下一个要执行的任务
-  if (work.child) {
-    return work.child
+  if (fiber.child) {
+    return fiber.child
   }
-  if (work.sibling) {
-    return work.sibling;
+  if (fiber.sibling) {
+    return fiber.sibling;
   }
-  return work.parent?.sibling
+  return fiber.parent?.sibling
 }
 
 function workLoop(deadline) {
@@ -94,7 +101,20 @@ function workLoop(deadline) {
     nextWorkUnit = performWorkOfUnit(nextWorkUnit);
     shouldYield = deadline.timeRemaining() < 1
   }
-  requestIdleCallback(workLoop)
+  if (!nextWorkUnit) {
+    commitRoot();
+  }
+  requestIdleCallback(workLoop);
+}
+
+function commitRoot() {
+  commitWork(root.child)
+}
+
+function commitWork(fiber) {
+  if (!fiber) return;
+  commitWork(fiber.child);
+  commitWork(fiber.sibling)
 }
 
 requestIdleCallback(workLoop);
