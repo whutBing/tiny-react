@@ -15,7 +15,9 @@ function createElement(type, props, ...children) {
     props: {
       ...props,
       children: children.map((child) => {
-        return typeof child === "string" ? createTextNode(child) : child;
+        // console.log('=====React.js=====', child)
+        const isTextNode = typeof child === 'string' || typeof child === 'number'
+        return isTextNode ? createTextNode(child) : child;
       }),
     },
   };
@@ -37,6 +39,7 @@ let nextWorkUnit = null;
 let root = null
 
 function createDom(type) {
+  // console.log('=====React.js=====', type)
   return type === "TEXT_ELEMENT"
     ? document.createTextNode("")
     : document.createElement(type)
@@ -55,9 +58,8 @@ function updateProps(dom, props) {
   });
 }
 
-function initChildren(fiber) {
+function initChildren(fiber, children) {
   // 3. 转换链表 设置好指针
-  const children = fiber.props.children;
   let prevChild = null;
   children.forEach((child, index) => {
     const newFiber = {
@@ -78,21 +80,29 @@ function initChildren(fiber) {
 }
 
 function performWorkOfUnit(fiber) {
-  if (!fiber.dom) {
-    // 1. 创建 dom
-    const dom = (fiber.dom = createDom(fiber.type))
-    fiber.parent.dom.append(dom)
-    updateProps(dom, fiber.props)
+  const isFunctionComponent = typeof fiber.type === "function"
+  if (!isFunctionComponent) {
+    if (!fiber.dom) {
+      // 1. 创建 dom
+      const dom = (fiber.dom = createDom(fiber.type));
+      updateProps(dom, fiber.props);
+    }
   }
-  initChildren(fiber)
+  const children = isFunctionComponent ? [fiber.type(fiber.props)] : fiber.props.children;
+  initChildren(fiber, children)
   // 4. 返回下一个要执行的任务
   if (fiber.child) {
     return fiber.child
   }
-  if (fiber.sibling) {
-    return fiber.sibling;
+  let nextFiber = fiber;
+  while (nextFiber) {
+    if (nextFiber.sibling) return nextFiber.sibling;
+    nextFiber = nextFiber.parent;
   }
-  return fiber.parent?.sibling
+  // if (fiber.sibling) {
+  //   return fiber.sibling;
+  // }
+  // return fiber.parent?.sibling
 }
 
 function workLoop(deadline) {
@@ -101,7 +111,7 @@ function workLoop(deadline) {
     nextWorkUnit = performWorkOfUnit(nextWorkUnit);
     shouldYield = deadline.timeRemaining() < 1
   }
-  if (!nextWorkUnit) {
+  if (!nextWorkUnit && root) {
     commitRoot();
   }
   requestIdleCallback(workLoop);
@@ -109,10 +119,18 @@ function workLoop(deadline) {
 
 function commitRoot() {
   commitWork(root.child)
+  root = null;
 }
 
 function commitWork(fiber) {
   if (!fiber) return;
+  let fiberParent = fiber.parent;
+  while (!fiberParent.dom) {
+    fiberParent = fiberParent.parent;
+  }
+  if (fiber.dom) {
+    fiberParent.dom.append(fiber.dom);
+  }
   commitWork(fiber.child);
   commitWork(fiber.sibling)
 }
