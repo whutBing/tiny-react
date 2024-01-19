@@ -51,9 +51,15 @@ function createDom(type) {
  * @param props
  */
 function updateProps(dom, props) {
+  console.log('=====React.js=====', props)
   Object.keys(props).forEach((key) => {
     if (key !== "children") {
-      dom[key] = props[key];
+      if (key.startsWith("on")) {
+        const eventType = key.slice(2).toLowerCase();
+        dom.addEventListener(eventType, props[key])
+      } else {
+        dom[key] = props[key];
+      }
     }
   });
 }
@@ -98,7 +104,7 @@ function performWorkOfUnit(fiber) {
   const isFunctionComponent = typeof fiber.type === "function"
   if (isFunctionComponent) {
     updateFunctionComponent(fiber)
-  }else {
+  } else {
     updateHostComponent(fiber)
   }
   

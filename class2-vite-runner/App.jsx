@@ -5,6 +5,7 @@ import React from "./core/React.js";
 function Counter({ count }) {
   return <div>count:{count}</div>
 }
+
 //
 // function CounterContainer() {
 //   return <Counter/>
@@ -12,12 +13,16 @@ function Counter({ count }) {
 
 // const App = React.createElement('app',{id:'app'},"hi","mini-react")
 function App() {
+  function handleClick(){
+    console.log('=====App.jsx=====', 666)
+  }
   return (
     <div>
-      hi-mini-react
-      <Counter count={10}></Counter>
-      <Counter count={20}></Counter>
+      {/*hi-mini-react*/}
+      {/*<Counter count={10}></Counter>*/}
+      {/*<Counter count={20}></Counter>*/}
       {/*<CounterContainer/>*/}
+      <button onClick={handleClick}>123</button>
     </div>
   )
 }
