@@ -2,8 +2,24 @@ import React from "./core/React.js";
 
 // const App = React.createElement("div", {id: "app"}, "hi", "mini-react");
 // console.log('=====App.jsx=====', App)
-function Counter({ count }) {
-  return <div>count:{count}</div>
+let count = 10
+let props = {id: '11111111111111111'}
+
+function Counter({num}) {
+  function handleClick() {
+    debugger;
+    console.log('=====App.jsx=====', 'click')
+    count++;
+    props = {}
+    React.update()
+  }
+  
+  return (
+    <div {...props}>
+      count: {count}
+      <button onClick={handleClick}>click</button>
+    </div>
+  )
 }
 
 //
@@ -13,16 +29,10 @@ function Counter({ count }) {
 
 // const App = React.createElement('app',{id:'app'},"hi","mini-react")
 function App() {
-  function handleClick(){
-    console.log('=====App.jsx=====', 666)
-  }
   return (
     <div>
-      {/*hi-mini-react*/}
-      {/*<Counter count={10}></Counter>*/}
-      {/*<Counter count={20}></Counter>*/}
-      {/*<CounterContainer/>*/}
-      <button onClick={handleClick}>123</button>
+      'hi-mini-react'
+      <Counter num={10}></Counter>
     </div>
   )
 }
