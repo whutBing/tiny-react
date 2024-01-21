@@ -25,18 +25,18 @@ function createElement(type, props, ...children) {
 
 function render(el, container) {
   // 只会走一次，后变的递归在其他处
-  nextWorkUnit = {
+  wipRoot = {
     dom: container,
     props: {
       children: [el]
     }
   }
-  root = nextWorkUnit;
+  nextWorkUnit = wipRoot
 }
 
 
 let nextWorkUnit = null;
-let root = null
+let wipRoot = null
 let currentRoot = null
 
 function createDom(type) {
@@ -61,7 +61,7 @@ function updateProps(dom, nextProps, prevPorps) {
       if (nextProps[key] !== prevPorps[key]) {
         if (key.startsWith('on')) {
           const eventType = key.slice(2).toLowerCase();
-          dom.removeEventListener(eventType,prevPorps[key])
+          dom.removeEventListener(eventType, prevPorps[key])
           dom.addEventListener(eventType, nextProps[key])
         } else {
           dom[key] = nextProps[key]
@@ -71,12 +71,15 @@ function updateProps(dom, nextProps, prevPorps) {
   })
 }
 
+
+let deletions = []
+
 /**
  * 3. 转换链表 设置好指针
  * @param fiber
  * @param children
  */
-function initChildren(fiber, children) {
+function reconcileChildren(fiber, children) {
   // 若是第一次，则指向root结点的孩子结点
   let oldFiber = fiber.alternate?.child;
   let prevChild = null;
@@ -105,7 +108,10 @@ function initChildren(fiber, children) {
         dom: null,
         effectTag: 'placement'
       }
-      
+      if (oldFiber) {
+        console.log('=====React.js=====', oldFiber)
+        deletions.push(oldFiber)
+      }
     }
     if (oldFiber) {
       oldFiber = oldFiber.sibling
@@ -122,7 +128,7 @@ function initChildren(fiber, children) {
 
 function updateFunctionComponent(fiber) {
   const children = [fiber.type(fiber.props)]
-  initChildren(fiber, children)
+  reconcileChildren(fiber, children)
 }
 
 function updateHostComponent(fiber) {
@@ -132,7 +138,7 @@ function updateHostComponent(fiber) {
     updateProps(dom, fiber.props, {});
   }
   const children = fiber.props.children;
-  initChildren(fiber, children)
+  reconcileChildren(fiber, children)
 }
 
 function performWorkOfUnit(fiber) {
@@ -160,16 +166,31 @@ function workLoop(deadline) {
     nextWorkUnit = performWorkOfUnit(nextWorkUnit);
     shouldYield = deadline.timeRemaining() < 1
   }
-  if (!nextWorkUnit && root) {
+  if (!nextWorkUnit && wipRoot) {
     commitRoot();
   }
   requestIdleCallback(workLoop);
 }
 
 function commitRoot() {
-  commitWork(root.child)
-  currentRoot = root;
-  root = null;
+  deletions.forEach(commitDeletion)
+  commitWork(wipRoot.child)
+  currentRoot = wipRoot;
+  wipRoot = null;
+  deletions = [];
+}
+
+function commitDeletion(fiber) {
+  // fiber.parent.dom.removeChild(fiber.dom);
+  if (fiber.dom) {
+    let fiberParent = fiber.parent;
+    while (!fiberParent.dom) {
+      fiberParent = fiberParent.parent;
+    }
+    fiberParent.dom.removeChild(fiber.dom)
+  } else {
+    commitDeletion(fiber.child)
+  }
 }
 
 function commitWork(fiber) {
@@ -192,12 +213,12 @@ function commitWork(fiber) {
 requestIdleCallback(workLoop);
 
 function update() {
-  nextWorkUnit = {
+  wipRoot = {
     dom: currentRoot.dom,
     props: currentRoot.props,
     alternate: currentRoot
   }
-  root = nextWorkUnit;
+  nextWorkUnit = wipRoot;
 }
 
 const React = {

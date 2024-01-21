@@ -1,31 +1,29 @@
 import React from "./core/React.js";
 
-// const App = React.createElement("div", {id: "app"}, "hi", "mini-react");
-// console.log('=====App.jsx=====', App)
-let count = 10
-let props = {id: '11111111111111111'}
+let showBar = false;
 
 function Counter({num}) {
-  function handleClick() {
-    debugger;
+  const foo = (
+    <div>
+      foo
+      <div>child</div>
+    </div>)
+  const bar = <div>bar</div>
+  
+  function handleShowBar() {
     console.log('=====App.jsx=====', 'click')
-    count++;
-    props = {}
+    showBar = !showBar;
     React.update()
   }
   
   return (
-    <div {...props}>
-      count: {count}
-      <button onClick={handleClick}>click</button>
+    <div>
+      Counter
+      <button onClick={handleShowBar}>click</button>
+      <div>{showBar ? bar : foo}</div>
     </div>
   )
 }
-
-//
-// function CounterContainer() {
-//   return <Counter/>
-// }
 
 // const App = React.createElement('app',{id:'app'},"hi","mini-react")
 function App() {
